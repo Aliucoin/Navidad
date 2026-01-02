@@ -47,6 +47,10 @@ val LocalCtx = staticCompositionLocalOf<Ctx> {
 	error("no ctx")
 }
 
+val LocalMediaPlayer = staticCompositionLocalOf<MediaPlayer> {
+	error("no media player")
+}
+
 val LocalNavStack = staticCompositionLocalOf<SnapshotStateList<Any>> {
 	error("no backstack")
 }
@@ -54,10 +58,12 @@ val LocalNavStack = staticCompositionLocalOf<SnapshotStateList<Any>> {
 @Composable
 fun App() {
 	val ctx = rememberCtx()
+	val mediaPlayer = rememberMediaPlayer()
 	val backStack = remember { mutableStateListOf<Any>(Library) }
 
 	CompositionLocalProvider(
 		LocalCtx provides ctx,
+		LocalMediaPlayer provides mediaPlayer,
 		LocalNavStack provides backStack
 	) {
 		NavicTheme {

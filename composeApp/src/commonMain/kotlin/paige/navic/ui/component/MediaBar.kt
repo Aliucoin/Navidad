@@ -19,6 +19,7 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
@@ -28,24 +29,31 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.graphics.shadow.Shadow
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import com.kyant.capsule.ContinuousCapsule
 import com.kyant.capsule.ContinuousRoundedRectangle
 import ir.mahozad.multiplatform.wavyslider.material3.WavySlider
 import navic.composeapp.generated.resources.Res
 import navic.composeapp.generated.resources.pause
+import navic.composeapp.generated.resources.play_arrow
 import navic.composeapp.generated.resources.skip_next
 import org.jetbrains.compose.resources.vectorResource
 import paige.navic.LocalCtx
+import paige.navic.LocalMediaPlayer
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MediaBar() {
 	val ctx = LocalCtx.current
-	var progress by remember { mutableFloatStateOf(0.314f) }
 	val interactionSource = remember { MutableInteractionSource() }
+	val player = LocalMediaPlayer.current
+	val progress by player.progress
+	val paused by player.isPaused
+	val currentIndex by player.currentIndex
 	Surface(
 		shape = ContinuousRoundedRectangle(24.dp, 24.dp, 0.dp, 0.dp),
 		color = NavigationBarDefaults.containerColor,
@@ -77,6 +85,11 @@ fun MediaBar() {
 					shape = ContinuousRoundedRectangle(12.dp),
 					color = MaterialTheme.colorScheme.surfaceVariant
 				) {
+					AsyncImage(
+						model = player.tracks?.coverArt,
+						contentDescription = player.tracks?.title,
+						contentScale = ContentScale.Crop,
+					)
 				}
 				Column(
 					modifier = Modifier
@@ -84,22 +97,38 @@ fun MediaBar() {
 						.weight(1f),
 					verticalArrangement = Arrangement.Center
 				) {
-					Text("Title", fontWeight = FontWeight(600))
-					Text("Artist", style = MaterialTheme.typography.titleSmall)
+					Text(
+						player.tracks?.tracks[currentIndex]?.title ?: "Nothing playing",
+						fontWeight = FontWeight(600),
+						maxLines = 1
+					)
+					Text(
+						player.tracks?.tracks[currentIndex]?.artist.orEmpty(),
+						style = MaterialTheme.typography.titleSmall,
+						maxLines = 1
+					)
 				}
 				IconButton(
 					onClick = {
 						ctx.clickSound()
+						if (paused) {
+							player.resume()
+						} else {
+							player.pause()
+						}
 					}
 				) {
 					Icon(
-						vectorResource(Res.drawable.pause),
+						vectorResource(
+							if (paused) Res.drawable.play_arrow else Res.drawable.pause
+						),
 						contentDescription = null
 					)
 				}
 				IconButton(
 					onClick = {
 						ctx.clickSound()
+						player.next()
 					}
 				) {
 					Icon(
@@ -118,7 +147,7 @@ fun MediaBar() {
 						bottom = 0.dp,
 					),
 				value = progress,
-				onValueChange = { progress = it },
+				onValueChange = { player.seek(it) },
 				thumb = {
 					SliderDefaults.Thumb(
 						interactionSource = interactionSource,

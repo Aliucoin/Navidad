@@ -28,6 +28,8 @@ import coil3.compose.AsyncImage
 import com.kyant.capsule.ContinuousCapsule
 import com.kyant.capsule.ContinuousRoundedRectangle
 import dev.burnoo.compose.remembersetting.rememberBooleanSetting
+import paige.navic.LocalMediaPlayer
+import paige.navic.data.session.SessionManager
 import paige.navic.ui.component.Form
 import paige.navic.ui.component.FormRow
 import paige.subsonic.api.model.AnyTrack
@@ -90,7 +92,7 @@ fun TracksScreen(
 		}
 		Form {
 			tracks.tracks.onEachIndexed { index, track ->
-				TrackRow(index, track)
+				TrackRow(index, tracks, track)
 			}
 		}
 	}
@@ -99,10 +101,13 @@ fun TracksScreen(
 @Composable
 fun TrackRow(
 	index: Int,
+	tracks: AnyTracks,
 	track: AnyTrack
 ) {
+	val player = LocalMediaPlayer.current
 	FormRow(
 		onClick = {
+			player.play(tracks, index)
 		},
 		horizontalArrangement = Arrangement.spacedBy(12.dp)
 	) {
