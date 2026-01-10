@@ -11,6 +11,7 @@ import androidx.compose.material3.ShortNavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -33,8 +34,10 @@ import paige.navic.Library
 import paige.navic.LocalCtx
 import paige.navic.LocalNavStack
 import paige.navic.Playlists
-import paige.navic.data.model.NavTabId
+import paige.navic.data.model.NavbarConfig
+import paige.navic.data.model.NavbarTab
 import paige.navic.ui.component.dialog.NavtabsViewModel
+import paige.navic.util.UiState
 
 private enum class NavItem(
 	val destination: Any,
@@ -54,67 +57,67 @@ fun BottomBar(
 	val backStack = LocalNavStack.current
 	val ctx = LocalCtx.current
 	var useShortNavbar by rememberBooleanSetting("useShortNavbar", false)
-	val config = viewModel.config
+	val state by viewModel.state.collectAsState()
 
-	AnimatedContent(targetState = useShortNavbar) { short ->
-		if (!short && ctx.sizeClass.widthSizeClass <= WindowWidthSizeClass.Compact) {
+	AnimatedContent(
+		!useShortNavbar
+			&& ctx.sizeClass.widthSizeClass <= WindowWidthSizeClass.Compact
+	) {
+		val tabs = ((state as? UiState.Success)?.data ?: NavbarConfig.default)
+			.tabs.filter { tab -> tab.visible }
+		if (it) {
 			NavigationBar {
-				config.tabs
-					.filter { it.visible }
-					.forEach { tab ->
-						val item = when (tab.id) {
-							NavTabId.LIBRARY -> NavItem.LIBRARY
-							NavTabId.PLAYLISTS -> NavItem.PLAYLISTS
-							NavTabId.ARTISTS -> NavItem.ARTISTS
-						}
-
-						NavigationBarItem(
-							selected = backStack.last() == item.destination,
-							onClick = {
-								ctx.clickSound()
-								backStack.clear()
-								backStack.add(item.destination)
-							},
-							icon = {
-								Icon(vectorResource(item.icon), null)
-							},
-							label = {
-								Text(stringResource(item.label))
-							}
-						)
+				tabs.forEach { tab ->
+					val item = when (tab.id) {
+						NavbarTab.Id.LIBRARY -> NavItem.LIBRARY
+						NavbarTab.Id.PLAYLISTS -> NavItem.PLAYLISTS
+						NavbarTab.Id.ARTISTS -> NavItem.ARTISTS
 					}
+
+					NavigationBarItem(
+						selected = backStack.last() == item.destination,
+						onClick = {
+							ctx.clickSound()
+							backStack.clear()
+							backStack.add(item.destination)
+						},
+						icon = {
+							Icon(vectorResource(item.icon), null)
+						},
+						label = {
+							Text(stringResource(item.label))
+						}
+					)
+				}
 			}
 		} else {
 			ShortNavigationBar {
-				config.tabs
-					.filter { it.visible }
-					.forEach { tab ->
-						val item = when (tab.id) {
-							NavTabId.LIBRARY -> NavItem.LIBRARY
-							NavTabId.PLAYLISTS -> NavItem.PLAYLISTS
-							NavTabId.ARTISTS -> NavItem.ARTISTS
-						}
-
-						ShortNavigationBarItem(
-							iconPosition = if (ctx.sizeClass.widthSizeClass > WindowWidthSizeClass.Compact)
-								NavigationItemIconPosition.Start
-							else NavigationItemIconPosition.Top,
-							selected = backStack.last() == item.destination,
-							onClick = {
-								ctx.clickSound()
-								backStack.clear()
-								backStack.add(item.destination)
-							},
-							icon = {
-								Icon(vectorResource(item.icon), null)
-							},
-							label = {
-								Text(stringResource(item.label))
-							}
-						)
+				tabs.forEach { tab ->
+					val item = when (tab.id) {
+						NavbarTab.Id.LIBRARY -> NavItem.LIBRARY
+						NavbarTab.Id.PLAYLISTS -> NavItem.PLAYLISTS
+						NavbarTab.Id.ARTISTS -> NavItem.ARTISTS
 					}
+
+					ShortNavigationBarItem(
+						iconPosition = if (ctx.sizeClass.widthSizeClass > WindowWidthSizeClass.Compact)
+							NavigationItemIconPosition.Start
+						else NavigationItemIconPosition.Top,
+						selected = backStack.last() == item.destination,
+						onClick = {
+							ctx.clickSound()
+							backStack.clear()
+							backStack.add(item.destination)
+						},
+						icon = {
+							Icon(vectorResource(item.icon), null)
+						},
+						label = {
+							Text(stringResource(item.label))
+						}
+					)
+				}
 			}
 		}
 	}
 }
-

@@ -17,9 +17,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -30,6 +29,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.kyant.capsule.ContinuousRoundedRectangle
 import com.russhwolf.settings.Settings
 import com.russhwolf.settings.set
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.json.Json
 import navic.composeapp.generated.resources.Res
 import navic.composeapp.generated.resources.action_ok
@@ -37,11 +38,11 @@ import navic.composeapp.generated.resources.drag_handle
 import navic.composeapp.generated.resources.option_navbar_tab_positions
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
-import paige.navic.data.model.NAVBAR_CONFIG_KEY
-import paige.navic.data.model.NAVBAR_CONFIG_VERSION
-import paige.navic.data.model.NavTabId
 import paige.navic.data.model.NavbarConfig
-import paige.navic.data.model.defaultNavbarConfig
+import paige.navic.data.model.NavbarTab
+import paige.navic.ui.component.common.ErrorBox
+import paige.navic.util.UiState
+import sh.calvin.reorderable.ReorderableCollectionItemScope
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
@@ -49,34 +50,42 @@ class NavtabsViewModel(
 	private val settings: Settings,
 	private val json: Json
 ) : ViewModel() {
+	private val _state = MutableStateFlow<UiState<NavbarConfig>>(UiState.Loading)
+	val state = _state.asStateFlow()
 
-	var config by mutableStateOf(loadConfig())
-		private set
-
-	private fun loadConfig(): NavbarConfig {
-		val raw = settings.getString(NAVBAR_CONFIG_KEY, "")
-		val config = if (raw.isNotEmpty())
-			json.decodeFromString(raw)
-		else
-			defaultNavbarConfig
-		return if (config.version != NAVBAR_CONFIG_VERSION)
-			defaultNavbarConfig
-		else config
+	init {
+		try {
+			_state.value = UiState.Success(loadConfig())
+		} catch (e: Exception) {
+			_state.value = UiState.Error(e)
+		}
 	}
 
-	private fun saveConfig(newConfig: NavbarConfig) {
-		config = newConfig
-		settings[NAVBAR_CONFIG_KEY] = json.encodeToString(newConfig)
+	private fun loadConfig(): NavbarConfig {
+		val raw = settings.getStringOrNull(NavbarConfig.KEY)
+			?: return NavbarConfig.default
+		val config: NavbarConfig = json.decodeFromString(raw)
+		return config.takeIf { it.version == NavbarConfig.VERSION }
+			?: NavbarConfig.default
+	}
+
+	private fun setConfig(newConfig: NavbarConfig) {
+		_state.value = UiState.Success(newConfig)
+		settings[NavbarConfig.KEY] = json.encodeToString(newConfig)
 	}
 
 	fun move(from: Int, to: Int) {
-		val list = config.tabs.toMutableList()
-		list.add(to, list.removeAt(from))
-		saveConfig(config.copy(tabs = list))
+		val config = (_state.value as UiState.Success).data
+		setConfig(config.copy(
+			tabs = config.tabs.toMutableList().apply {
+				add(to, removeAt(from))
+			}
+		))
 	}
 
-	fun toggleVisibility(id: NavTabId) {
-		saveConfig(
+	fun toggleVisibility(id: NavbarTab.Id) {
+		val config = (_state.value as UiState.Success).data
+		setConfig(
 			config.copy(
 				tabs = config.tabs.map {
 					if (it.id == id) it.copy(visible = !it.visible) else it
@@ -97,88 +106,111 @@ fun NavtabsDialog(
 
 	val haptic = LocalHapticFeedback.current
 	val lazyListState = rememberLazyListState()
-	val config = viewModel.config
+	val state by viewModel.state.collectAsState()
 
 	val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to ->
 		viewModel.move(from.index, to.index)
 		haptic.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
 	}
 
-	AlertDialog(
-		title = {
-			Text(stringResource(Res.string.option_navbar_tab_positions))
-		},
-		text = {
-			LazyColumn(
-				modifier = Modifier
-					.fillMaxWidth()
-					.heightIn(max = 300.dp),
-				state = lazyListState,
-				verticalArrangement = Arrangement.spacedBy(8.dp)
-			) {
-				items(
-					items = config.tabs,
-					key = { it.id }
-				) { tab ->
-					ReorderableItem(
-						reorderableState,
-						key = tab.id
-					) { isDragging ->
-						val elevation by animateDpAsState(
-							if (isDragging) 4.dp else 0.dp
-						)
-
-						Surface(
-							shadowElevation = elevation,
-							modifier = Modifier.fillMaxWidth(),
-							shape = ContinuousRoundedRectangle(14.dp)
-						) {
-							Row(
-								modifier = Modifier
-									.fillMaxWidth()
-									.padding(8.dp),
-								horizontalArrangement = Arrangement.SpaceBetween,
-								verticalAlignment = Alignment.CenterVertically
-							) {
-								Checkbox(
-									enabled = tab.id != NavTabId.LIBRARY,
-									checked = tab.visible,
-									onCheckedChange = {
+	when (state) {
+		is UiState.Loading -> return
+		is UiState.Error -> ErrorBox(state as UiState.Error)
+		is UiState.Success -> {
+			val config = (state as UiState.Success).data
+			AlertDialog(
+				title = {
+					Text(stringResource(Res.string.option_navbar_tab_positions))
+				},
+				text = {
+					LazyColumn(
+						modifier = Modifier
+							.fillMaxWidth()
+							.heightIn(max = 300.dp),
+						state = lazyListState,
+						verticalArrangement = Arrangement.spacedBy(8.dp)
+					) {
+						items(
+							items = config.tabs,
+							key = { tab -> tab.id }
+						) { tab ->
+							ReorderableItem(
+								reorderableState,
+								key = tab.id
+							) { isDragging ->
+								NavtabRow(
+									tab = tab,
+									isDragging = isDragging,
+									onToggleVisibility = {
 										viewModel.toggleVisibility(tab.id)
 									}
 								)
-								Text(tab.id.name.lowercase().replaceFirstChar { it.uppercase() })
-								IconButton(
-									modifier = Modifier.draggableHandle(
-										onDragStarted = {
-											haptic.performHapticFeedback(
-												HapticFeedbackType.GestureThresholdActivate
-											)
-										},
-										onDragStopped = {
-											haptic.performHapticFeedback(
-												HapticFeedbackType.GestureEnd
-											)
-										}
-									),
-									onClick = {}
-								) {
-									Icon(
-										vectorResource(Res.drawable.drag_handle),
-										contentDescription = null
-									)
-								}
 							}
 						}
 					}
+				},
+				onDismissRequest = onDismissRequest,
+				confirmButton = {
+					Button(onClick = onDismissRequest) {
+						Text(stringResource(Res.string.action_ok))
+					}
 				}
-			}
-		},
-		onDismissRequest = onDismissRequest,
-		confirmButton = {
-			Button(onClick = onDismissRequest) {
-				Text(stringResource(Res.string.action_ok))
+			)
+		}
+	}
+}
+
+@Composable
+private fun ReorderableCollectionItemScope.NavtabRow(
+	tab: NavbarTab,
+	isDragging: Boolean,
+	onToggleVisibility: () -> Unit
+) {
+	val haptic = LocalHapticFeedback.current
+	val elevation by animateDpAsState(
+		if (isDragging) 4.dp else 0.dp
+	)
+
+	Surface(
+		shadowElevation = elevation,
+		modifier = Modifier.fillMaxWidth(),
+		shape = ContinuousRoundedRectangle(14.dp)
+	) {
+		Row(
+			modifier = Modifier
+				.fillMaxWidth()
+				.padding(8.dp),
+			horizontalArrangement = Arrangement.SpaceBetween,
+			verticalAlignment = Alignment.CenterVertically
+		) {
+			Checkbox(
+				enabled = tab.id != NavbarTab.Id.LIBRARY,
+				checked = tab.visible,
+				onCheckedChange = {
+					onToggleVisibility()
+				}
+			)
+			Text(tab.id.name.lowercase().replaceFirstChar { it.uppercase() })
+			IconButton(
+				modifier = Modifier.draggableHandle(
+					onDragStarted = {
+						haptic.performHapticFeedback(
+							HapticFeedbackType.GestureThresholdActivate
+						)
+					},
+					onDragStopped = {
+						haptic.performHapticFeedback(
+							HapticFeedbackType.GestureEnd
+						)
+					}
+				),
+				onClick = {}
+			) {
+				Icon(
+					vectorResource(Res.drawable.drag_handle),
+					contentDescription = null
+				)
 			}
 		}
-	)
+	}
 }
