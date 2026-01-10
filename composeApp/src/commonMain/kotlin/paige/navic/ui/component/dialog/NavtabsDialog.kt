@@ -45,7 +45,7 @@ import paige.navic.data.model.defaultNavbarConfig
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
-class NavbarTabsViewModel(
+class NavtabsViewModel(
 	private val settings: Settings,
 	private val json: Json
 ) : ViewModel() {
@@ -88,10 +88,10 @@ class NavbarTabsViewModel(
 
 
 @Composable
-fun NavbarTabsDialog(
+fun NavtabsDialog(
 	presented: Boolean,
 	onDismissRequest: () -> Unit,
-	viewModel: NavbarTabsViewModel = viewModel { NavbarTabsViewModel(Settings(), Json) }
+	viewModel: NavtabsViewModel = viewModel { NavtabsViewModel(Settings(), Json) }
 ) {
 	if (!presented) return
 

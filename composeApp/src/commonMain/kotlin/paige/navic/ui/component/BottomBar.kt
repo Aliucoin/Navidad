@@ -34,7 +34,7 @@ import paige.navic.LocalCtx
 import paige.navic.LocalNavStack
 import paige.navic.Playlists
 import paige.navic.data.model.NavTabId
-import paige.navic.ui.component.dialog.NavbarTabsViewModel
+import paige.navic.ui.component.dialog.NavtabsViewModel
 
 private enum class NavItem(
 	val destination: Any,
@@ -49,7 +49,7 @@ private enum class NavItem(
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun BottomBar(
-	viewModel: NavbarTabsViewModel = viewModel { NavbarTabsViewModel(Settings(), Json) }
+	viewModel: NavtabsViewModel = viewModel { NavtabsViewModel(Settings(), Json) }
 ) {
 	val backStack = LocalNavStack.current
 	val ctx = LocalCtx.current

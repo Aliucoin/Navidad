@@ -87,85 +87,85 @@ fun ShareDialog(
 	val scrollState = rememberScrollState()
 	val state by viewModel.state.collectAsState()
 
+	if (id == null) return
+
 	LaunchedEffect(state) {
-		(state as? UiState.Success<String?>)?.data?.let {
-			if (id != null) {
-				onIdClear()
-				clipboard.setText(AnnotatedString(it))
-				viewModel.viewModelScope.launch {
-					snackbarState.showSnackbar(
-						message = buildString {
-							append(getString(Res.string.notice_copied))
-							expiry?.let {
-								append("\n" + getString(
-									Res.string.notice_expiry, expiry.toHumanReadable()
-								))
-							}
-						}
-					)
+		viewModel.viewModelScope.launch {
+			val link = (state as? UiState.Success<String?>)?.data
+				?: return@launch
+			onIdClear()
+			clipboard.setText(AnnotatedString(link))
+			snackbarState.showSnackbar(
+				message = buildString {
+					append(getString(Res.string.notice_copied))
+					expiry?.let {
+						append(
+							"\n" + getString(
+								Res.string.notice_expiry, expiry.toHumanReadable()
+							)
+						)
+					}
 				}
-			}
+			)
 		}
 	}
 
-	id?.let {
-		AlertDialog(
-			title = { Text(stringResource(Res.string.title_create_share)) },
-			text = {
-				Column(
-					Modifier.verticalScroll(scrollState),
-					horizontalAlignment = Alignment.CenterHorizontally
-				) {
-					(state as? UiState.Error)?.error?.let {
-						SelectionContainer {
-							Text("$it")
-						}
-					}
-					Row(
-						horizontalArrangement = Arrangement.spacedBy(4.dp),
-						verticalAlignment = Alignment.CenterVertically
-					) {
-						Checkbox(
-							checked = expiry != null,
-							enabled = state !is UiState.Loading,
-							onCheckedChange = { onExpiryChange(if (it) 1.hours else null) }
-						)
-						Text(stringResource(Res.string.option_share_expires), Modifier.weight(1f))
-					}
-					expiry?.let {
-						DurationPicker(
-							duration = expiry,
-							onDurationChange = onExpiryChange,
-							enabled = state !is UiState.Loading,
-						)
+	AlertDialog(
+		title = { Text(stringResource(Res.string.title_create_share)) },
+		text = {
+			Column(
+				Modifier.verticalScroll(scrollState),
+				horizontalAlignment = Alignment.CenterHorizontally
+			) {
+				(state as? UiState.Error)?.error?.let {
+					SelectionContainer {
+						Text("$it")
 					}
 				}
-			},
-			onDismissRequest = {
+				Row(
+					horizontalArrangement = Arrangement.spacedBy(4.dp),
+					verticalAlignment = Alignment.CenterVertically
+				) {
+					Checkbox(
+						checked = expiry != null,
+						enabled = state !is UiState.Loading,
+						onCheckedChange = { onExpiryChange(if (it) 1.hours else null) }
+					)
+					Text(stringResource(Res.string.option_share_expires), Modifier.weight(1f))
+				}
+				expiry?.let {
+					DurationPicker(
+						duration = expiry,
+						onDurationChange = onExpiryChange,
+						enabled = state !is UiState.Loading,
+					)
+				}
+			}
+		},
+		onDismissRequest = {
+			if (state !is UiState.Loading) {
+				onIdClear()
+			}
+		},
+		confirmButton = {
+			Button(
+				onClick = { viewModel.share(id, expiry) },
+				enabled = state !is UiState.Loading,
+				shape = ContinuousCapsule
+			) {
 				if (state !is UiState.Loading) {
-					onIdClear()
+					Text(stringResource(Res.string.action_share))
+				} else {
+					CircularProgressIndicator(Modifier.size(20.dp))
 				}
-			},
-			confirmButton = {
-				Button(
-					onClick = { viewModel.share(id, expiry) },
-					enabled = state !is UiState.Loading,
-					shape = ContinuousCapsule
-				) {
-					if (state !is UiState.Loading) {
-						Text(stringResource(Res.string.action_share))
-					} else {
-						CircularProgressIndicator(Modifier.size(20.dp))
-					}
-				}
-			},
-			dismissButton = {
-				TextButton(
-					enabled = state !is UiState.Loading,
-					onClick = { onIdClear() },
-				) { Text(stringResource(Res.string.action_cancel)) }
-			},
-			shape = ContinuousRoundedRectangle(42.dp)
-		)
-	}
+			}
+		},
+		dismissButton = {
+			TextButton(
+				enabled = state !is UiState.Loading,
+				onClick = { onIdClear() },
+			) { Text(stringResource(Res.string.action_cancel)) }
+		},
+		shape = ContinuousRoundedRectangle(42.dp)
+	)
 }

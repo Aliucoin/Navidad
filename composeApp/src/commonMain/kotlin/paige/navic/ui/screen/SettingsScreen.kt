@@ -28,12 +28,12 @@ import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import paige.navic.ui.component.Form
 import paige.navic.ui.component.FormRow
-import paige.navic.ui.component.dialog.NavbarTabsDialog
+import paige.navic.ui.component.dialog.NavtabsDialog
 
 @Composable
 fun ThemeSettings() {
 	var expanded by rememberSaveable { mutableStateOf(false) }
-	var showNavbarTabsDialog by rememberSaveable { mutableStateOf(false) }
+	var showNavtabsDialog by rememberSaveable { mutableStateOf(false) }
 	var useSystemFont by rememberBooleanSetting("useSystemFont", false)
 	var useShortNavbar by rememberBooleanSetting("useShortNavbar", false)
 	var roundCoverArt by rememberBooleanSetting("roundCoverArt", true)
@@ -73,16 +73,16 @@ fun ThemeSettings() {
 			}
 			FormRow(
 				onClick = {
-					showNavbarTabsDialog = true
+					showNavtabsDialog = true
 				}
 			) {
 				Text(stringResource(Res.string.option_navbar_tab_positions))
 			}
 		}
 	}
-	NavbarTabsDialog(
-		presented = showNavbarTabsDialog,
-		onDismissRequest = { showNavbarTabsDialog = false }
+	NavtabsDialog(
+		presented = showNavtabsDialog,
+		onDismissRequest = { showNavtabsDialog = false }
 	)
 }
 

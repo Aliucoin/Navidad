@@ -1,8 +1,11 @@
 package paige.navic.ui.component
 
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -19,12 +22,20 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil3.compose.AsyncImage
 import navic.composeapp.generated.resources.Res
+import navic.composeapp.generated.resources.account_circle
+import navic.composeapp.generated.resources.action_log_in
+import navic.composeapp.generated.resources.action_log_out
 import navic.composeapp.generated.resources.action_navigate_back
 import navic.composeapp.generated.resources.arrow_back
+import navic.composeapp.generated.resources.logout
 import navic.composeapp.generated.resources.search
 import navic.composeapp.generated.resources.settings
 import navic.composeapp.generated.resources.title_library
@@ -32,25 +43,35 @@ import navic.composeapp.generated.resources.title_playlists
 import navic.composeapp.generated.resources.title_settings
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
+import paige.navic.Ctx
 import paige.navic.Library
 import paige.navic.LocalCtx
 import paige.navic.LocalNavStack
 import paige.navic.Playlists
 import paige.navic.Search
 import paige.navic.Settings
-import paige.navic.ui.viewmodel.TopBarViewModel
+import paige.navic.data.model.User
+import paige.navic.ui.component.dialog.LoginDialog
+import paige.navic.ui.viewmodel.LoginViewModel
 import paige.navic.util.LoginState
+
+private class TopBarScope(
+	val ctx: Ctx,
+	val backStack: SnapshotStateList<Any>,
+	val loginState: LoginState<User?>
+)
 
 @OptIn(
 	ExperimentalMaterial3Api::class,
 	ExperimentalMaterial3ExpressiveApi::class
 )
 @Composable
-fun TopBar(
-	viewModel: TopBarViewModel = viewModel { TopBarViewModel() }
-) {
-	val backStack = LocalNavStack.current
+fun TopBar(viewModel: LoginViewModel = viewModel { LoginViewModel() }) {
 	val ctx = LocalCtx.current
+	val backStack = LocalNavStack.current
+	val loginState by viewModel.loginState.collectAsState()
+
+	var showLogin by remember { mutableStateOf(false) }
 
 	val title = when (backStack.last()) {
 		Library -> Res.string.title_library
@@ -59,93 +80,144 @@ fun TopBar(
 		else -> null
 	}
 
-	val userState by viewModel.userState.collectAsState()
-	var showLoginDialog by remember { mutableStateOf(false) }
-
 	val expandedHeight by animateDpAsState(
 		if (backStack.last() != Search)
 			TopAppBarDefaults.TopAppBarExpandedHeight
 		else 0.dp
 	)
 
-	TopAppBar(
-		title = {
-			title?.let {
-				Text(stringResource(title), style = MaterialTheme.typography.headlineMedium)
-			}
+	with(
+		TopBarScope(
+			ctx = ctx,
+			backStack = backStack,
+			loginState = loginState
+		)
+	) {
+		TopAppBar(
+			title = {
+				title?.let {
+					Text(stringResource(title), style = MaterialTheme.typography.headlineMedium)
+				}
+			},
+			navigationIcon = { NavigationIcon() },
+			actions = {
+				Actions(
+					onSetShowLogin = { showLogin = it }
+				)
+			},
+			colors = TopAppBarDefaults.topAppBarColors(
+				scrolledContainerColor = MaterialTheme.colorScheme.surface
+			),
+			expandedHeight = expandedHeight
+		)
+		if (showLogin && loginState !is LoginState.Success) {
+			LoginDialog(
+				viewModel = viewModel,
+				onDismissRequest = { showLogin = false }
+			)
+		}
+	}
+}
+
+@Composable
+private fun TopBarScope.NavigationIcon() {
+	if (backStack.size <= 1 || backStack.last() == Search) return
+	IconButton(
+		colors = IconButtonDefaults.iconButtonVibrantColors(
+			containerColor = MaterialTheme.colorScheme.surfaceContainer
+		),
+		onClick = {
+			ctx.clickSound()
+			backStack.removeLast()
+		}
+	) {
+		Icon(
+			imageVector = vectorResource(Res.drawable.arrow_back),
+			contentDescription = stringResource(Res.string.action_navigate_back)
+		)
+	}
+}
+
+@Composable
+private fun TopBarScope.Actions(
+	onSetShowLogin: (shown: Boolean) -> Unit
+) {
+	val user = (loginState as? LoginState.Success)?.data
+	if (backStack.count() > 1) return
+
+	IconButton(
+		onClick = {
+			ctx.clickSound()
+			backStack.add(Search)
 		},
-		navigationIcon = {
-			if (backStack.size > 1 && backStack.last() != Search) {
+		enabled = user != null
+	) {
+		Icon(
+			vectorResource(Res.drawable.search),
+			contentDescription = null
+		)
+	}
+
+	IconButton(onClick = {
+		ctx.clickSound()
+		backStack.add(Settings)
+	}) {
+		Icon(
+			vectorResource(Res.drawable.settings),
+			contentDescription = null
+		)
+	}
+
+	if (loginState is LoginState.Loading) {
+		CircularProgressIndicator(
+			modifier = Modifier
+				.padding(13.9.dp)
+				.size(20.dp)
+		)
+	} else {
+		if (user != null) {
+			Box {
+				var expanded by remember { mutableStateOf(false) }
 				IconButton(
-					colors = IconButtonDefaults.iconButtonVibrantColors(
-						containerColor = MaterialTheme.colorScheme.surfaceContainer
-					),
 					onClick = {
 						ctx.clickSound()
-						backStack.removeLast()
+						expanded = true
 					}
 				) {
-					Icon(
-						imageVector = vectorResource(Res.drawable.arrow_back),
-						contentDescription = stringResource(Res.string.action_navigate_back)
+					AsyncImage(
+						model = user.avatarUrl,
+						contentDescription = user.name,
+						contentScale = ContentScale.Crop,
+						modifier = Modifier
+							.size(36.dp)
+							.clip(CircleShape)
+							.background(MaterialTheme.colorScheme.surfaceContainer)
 					)
 				}
-			}
-		},
-		actions = {
-			if (backStack.count() == 1) {
-				if ((userState as? LoginState.Success)?.data != null) {
-					IconButton(
+				Dropdown(
+					expanded = expanded,
+					onDismissRequest = { expanded = false }
+				) {
+					DropdownItem(
+						text = Res.string.action_log_out,
 						onClick = {
 							ctx.clickSound()
-							backStack.add(Search)
-						}
-					) {
-						Icon(
-							vectorResource(Res.drawable.search),
-							contentDescription = null
-						)
-					}
-				}
-				IconButton(
-					onClick = {
-						ctx.clickSound()
-						backStack.add(Settings)
-					}
-				) {
-					Icon(
-						vectorResource(Res.drawable.settings),
-						contentDescription = null
-					)
-				}
-
-				when (userState) {
-					is LoginState.Loading -> CircularProgressIndicator(
-						modifier = Modifier
-							.padding(13.9.dp)
-							.size(20.dp)
-					)
-
-					is LoginState.Error,
-					is LoginState.LoggedOut,
-					is LoginState.Success -> LoginButton(
-						userState = userState,
-						setShowLoginDialog = { showLoginDialog = it },
-						viewModel = viewModel
+							onSetShowLogin(false)
+						},
+						leadingIcon = Res.drawable.logout
 					)
 				}
 			}
-		},
-		colors = TopAppBarDefaults.topAppBarColors(
-			scrolledContainerColor = MaterialTheme.colorScheme.surface
-		),
-		expandedHeight = expandedHeight
-	)
-
-	LoginDialog(
-		userState = userState,
-		viewModel = viewModel,
-		visible = (showLoginDialog && userState !is LoginState.Success),
-		setVisible = { showLoginDialog = it }
-	)
+		} else {
+			IconButton(onClick = {
+				ctx.clickSound()
+				onSetShowLogin(true)
+			}) {
+				Icon(
+					vectorResource(Res.drawable.account_circle),
+					contentDescription = stringResource(Res.string.action_log_in)
+				)
+			}
+		}
+	}
 }
