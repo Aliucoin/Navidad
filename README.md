@@ -1,24 +1,21 @@
 # Navic
-[![GitHub Release](https://img.shields.io/github/v/release/paigely/Navic?include_prereleases)][RELEASES]
-[![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/paigely/Navic/total)][RELEASES]
-[![GitHub License](https://img.shields.io/github/license/paigely/Navic?color=%23C96FAD)](LICENSE)
-
 Navidrome client for Android and iOS with Material 3 Expressive design
 
-### Features
-* Intuitive and familiar UI
-* Customizable, many settings
-* Fast and performant
-* Integrates into your system, shows in Android quick settings and iOS lock screen
+## Features
+* An intuitive and familiar UI
+* Customizable, many settings and more to come
+* Pretty lightweight and fast
+* Secure and private: no permissions, doesn't connect to anything beside your instance
+* Integrated into your system: shows up on the lock screen + quick settings
 * Feature rich, implements most subsonic APIs
-* Open source
+* Open source: features are being added and bugs are being fixed actively
 
 ## Download
 Visit [releases][RELEASES] and get the latest [`.apk`][APK_DOWNLOAD] or [`.ipa`][IPA_DOWNLOAD].
 
 [![Add to Obtainium](https://img.shields.io/badge/Add%20to%20Obtainium-black?style=for-the-badge&logo=obtainium&logoColor=%23D2BCFD&logoSize=auto)][ADD_TO_OBTAINIUM]
 [![Download APK](https://img.shields.io/badge/Download%20APK-black?style=for-the-badge&logo=android&logoColor=3DDC84&logoSize=auto)][APK_DOWNLOAD]
-[![Download ipa](https://img.shields.io/badge/Download%20ipa-black?style=for-the-badge&logo=apple&logoColor=white&logoSize=auto)][IPA_DOWNLOAD]
+[![Download IPA](https://img.shields.io/badge/Download%20ipa-black?style=for-the-badge&logo=apple&logoColor=white&logoSize=auto)][IPA_DOWNLOAD]
 
 ## Screenshots
 
