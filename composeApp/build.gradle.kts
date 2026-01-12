@@ -42,6 +42,7 @@ kotlin {
 			implementation(libs.coil.network.ktor3)
 			implementation(libs.capsule)
 			implementation(libs.wavySlider)
+			implementation(libs.ktor.client.content.negotiation)
 			implementation(libs.ktor.serialization.json)
 			implementation(libs.jetbrains.navigation3.ui)
 			implementation(libs.kmpalette.core)

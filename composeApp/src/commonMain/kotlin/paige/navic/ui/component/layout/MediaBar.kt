@@ -25,6 +25,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -66,10 +70,11 @@ import navic.composeapp.generated.resources.play_arrow
 import navic.composeapp.generated.resources.skip_next
 import navic.composeapp.generated.resources.skip_previous
 import org.jetbrains.compose.resources.vectorResource
-import paige.navic.shared.Ctx
 import paige.navic.LocalCtx
 import paige.navic.LocalMediaPlayer
+import paige.navic.shared.Ctx
 import paige.navic.shared.MediaPlayer
+import paige.navic.ui.screen.LyricsScreen
 
 private class MediaBarScope(
 	val player: MediaPlayer,
@@ -126,17 +131,9 @@ private fun MediaBarScope.MainContent() {
 
 @Composable
 private fun MediaBarScope.DetailsContent() {
-	val paused by player.isPaused
-	val artSize by animateDpAsState(
-		if (paused)
-			256.dp
-		else 290.dp,
-		animationSpec = spring(
-			dampingRatio = Spring.DampingRatioLowBouncy,
-			stiffness = Spring.StiffnessLow,
-			visibilityThreshold = Dp.VisibilityThreshold
-		)
-	)
+	val pagerState = rememberPagerState(pageCount = { 2 })
+	val currentIndex by player.currentIndex
+	val currentTrack = player.tracks?.tracks?.getOrNull(currentIndex)
 	Box(Modifier.fillMaxSize()) {
 		AlbumArt(
 			modifier = Modifier
@@ -157,29 +154,79 @@ private fun MediaBarScope.DetailsContent() {
 					)
 				}
 		)
-		Column(
-			Modifier.fillMaxSize(),
-			horizontalAlignment = Alignment.CenterHorizontally,
-			verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically)
-		) {
-			AlbumArtContainer(
-				modifier = Modifier.widthIn(0.dp, artSize).aspectRatio(1f),
-				expanded = true
-			)
-			Column(Modifier.padding(15.dp)) {
-				Row(
-					Modifier.padding(15.dp, 0.dp),
-					verticalAlignment = Alignment.CenterVertically
-				) {
-					Info(rowScope = this@Row)
-				}
-				ProgressBar(expanded = true)
+		HorizontalPager(
+			state = pagerState,
+			modifier = Modifier.fillMaxSize()
+		) { page ->
+			when (page) {
+				0 -> PlayerView()
+				1 -> LyricsScreen(currentTrack)
 			}
-			Controls(expanded = true)
+		}
+		Row(
+			Modifier
+				.wrapContentHeight()
+				.fillMaxWidth()
+				.align(Alignment.BottomCenter)
+				.padding(bottom = 8.dp),
+			horizontalArrangement = Arrangement.Center
+		) {
+			repeat(pagerState.pageCount) { iteration ->
+				val color by animateColorAsState(
+					if (pagerState.currentPage == iteration)
+						MaterialTheme.colorScheme.onSurface
+					else MaterialTheme.colorScheme.onSurface.copy(alpha = .25f)
+				)
+				Box(
+					modifier = Modifier
+						.padding(4.dp)
+						.clip(CircleShape)
+						.background(color)
+						.size(8.dp)
+				)
+			}
 		}
 	}
 }
 
+//region views
+@Composable
+private fun MediaBarScope.PlayerView() {
+	val paused by player.isPaused
+	val artSize by animateDpAsState(
+		if (paused)
+			256.dp
+		else 290.dp,
+		animationSpec = spring(
+			dampingRatio = Spring.DampingRatioLowBouncy,
+			stiffness = Spring.StiffnessLow,
+			visibilityThreshold = Dp.VisibilityThreshold
+		)
+	)
+	Column(
+		Modifier.fillMaxSize(),
+		horizontalAlignment = Alignment.CenterHorizontally,
+		verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically)
+	) {
+		AlbumArtContainer(
+			modifier = Modifier.widthIn(0.dp, artSize).aspectRatio(1f),
+			expanded = true
+		)
+		Column(Modifier.padding(15.dp)) {
+			Row(
+				Modifier.padding(15.dp, 0.dp),
+				verticalAlignment = Alignment.CenterVertically
+			) {
+				Info(rowScope = this@Row)
+			}
+			ProgressBar(expanded = true)
+		}
+		Controls(expanded = true)
+	}
+}
+//endregion views
+
+//region components
 @Composable
 private fun MediaBarScope.AlbumArtContainer(
 	modifier: Modifier = Modifier,
@@ -417,3 +464,4 @@ private fun MediaBarScope.ProgressBar(expanded: Boolean) {
 		)
 	}
 }
+//endregion components
