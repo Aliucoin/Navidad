@@ -20,8 +20,12 @@ import com.russhwolf.settings.Settings
 import dev.burnoo.compose.remembersetting.rememberBooleanSetting
 import kotlinx.serialization.json.Json
 import navic.composeapp.generated.resources.Res
-import navic.composeapp.generated.resources.account_circle
+import navic.composeapp.generated.resources.album
+import navic.composeapp.generated.resources.album_unselected
+import navic.composeapp.generated.resources.artist
+import navic.composeapp.generated.resources.artist_unselected
 import navic.composeapp.generated.resources.library_music
+import navic.composeapp.generated.resources.library_music_unselected
 import navic.composeapp.generated.resources.playlist_play
 import navic.composeapp.generated.resources.title_albums
 import navic.composeapp.generated.resources.title_artists
@@ -45,12 +49,32 @@ import paige.navic.util.UiState
 private enum class NavItem(
 	val destination: NavKey,
 	val icon: DrawableResource,
+	val iconUnselected: DrawableResource = icon,
 	val label: StringResource
 ) {
-	LIBRARY(Library, Res.drawable.library_music, Res.string.title_library),
-	ALBUMS(Albums, Res.drawable.library_music, Res.string.title_albums),
-	PLAYLISTS(Playlists, Res.drawable.playlist_play, Res.string.title_playlists),
-	ARTISTS(Artists, Res.drawable.account_circle, Res.string.title_artists)
+	LIBRARY(
+		destination = Library,
+		icon = Res.drawable.library_music,
+		iconUnselected = Res.drawable.library_music_unselected,
+		label = Res.string.title_library
+	),
+	ALBUMS(
+		destination = Albums,
+		icon = Res.drawable.album,
+		iconUnselected = Res.drawable.album_unselected,
+		label = Res.string.title_albums
+	),
+	PLAYLISTS(
+		destination = Playlists,
+		icon = Res.drawable.playlist_play,
+		label = Res.string.title_playlists
+	),
+	ARTISTS(
+		destination = Artists,
+		icon = Res.drawable.artist,
+		iconUnselected = Res.drawable.artist_unselected,
+		label = Res.string.title_artists
+	)
 }
 
 @OptIn(ExperimentalAnimationApi::class)
@@ -78,16 +102,17 @@ fun BottomBar(
 						NavbarTab.Id.PLAYLISTS -> NavItem.PLAYLISTS
 						NavbarTab.Id.ARTISTS -> NavItem.ARTISTS
 					}
+					val selected = backStack.last() == item.destination
 
 					NavigationBarItem(
-						selected = backStack.last() == item.destination,
+						selected = selected,
 						onClick = {
 							ctx.clickSound()
 							backStack.clear()
 							backStack.add(item.destination)
 						},
 						icon = {
-							Icon(vectorResource(item.icon), null)
+							Icon(vectorResource(if (selected) item.icon else item.iconUnselected), null)
 						},
 						label = {
 							Text(stringResource(item.label))
@@ -104,6 +129,7 @@ fun BottomBar(
 						NavbarTab.Id.PLAYLISTS -> NavItem.PLAYLISTS
 						NavbarTab.Id.ARTISTS -> NavItem.ARTISTS
 					}
+					val selected = backStack.last() == item.destination
 
 					ShortNavigationBarItem(
 						iconPosition = if (ctx.sizeClass.widthSizeClass > WindowWidthSizeClass.Compact)
@@ -116,7 +142,7 @@ fun BottomBar(
 							backStack.add(item.destination)
 						},
 						icon = {
-							Icon(vectorResource(item.icon), null)
+							Icon(vectorResource(if (selected) item.icon else item.iconUnselected), null)
 						},
 						label = {
 							Text(stringResource(item.label))
