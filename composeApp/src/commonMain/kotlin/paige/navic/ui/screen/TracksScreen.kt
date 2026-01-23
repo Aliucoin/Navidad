@@ -34,7 +34,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -101,8 +100,6 @@ fun TracksScreen(
 		TracksViewModel(partialTracks)
 	}
 ) {
-	@Suppress("DEPRECATION")
-	val clipboard = LocalClipboardManager.current
 	val uriHandler = LocalUriHandler.current
 	val player = LocalMediaPlayer.current
 	val scrollState = rememberScrollState()
@@ -263,6 +260,7 @@ fun TracksScreen(
 
 @Composable
 private fun TracksScreenScope.Metadata() {
+	val uriHandler = LocalUriHandler.current
 	val backStack = LocalNavStack.current
 	var artGridRounding by rememberFloatSetting("artGridRounding", 16f)
 	AsyncImage(
@@ -281,6 +279,11 @@ private fun TracksScreenScope.Metadata() {
 				ContinuousRoundedRectangle(artGridRounding.dp)
 			)
 			.background(MaterialTheme.colorScheme.surfaceContainer)
+			.clickable {
+				tracks.coverArt?.let { uri ->
+					uriHandler.openUri(uri)
+				}
+			}
 	)
 	Column(horizontalAlignment = Alignment.CenterHorizontally) {
 		Text(

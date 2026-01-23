@@ -8,6 +8,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -62,6 +63,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -339,6 +341,7 @@ private fun MediaBarScope.AlbumArtContainer(
 private fun MediaBarScope.AlbumArt(
 	modifier: Modifier = Modifier
 ) {
+	val uriHandler = LocalUriHandler.current
 	val coverUri = remember(playerState.currentTrack?.coverArt) {
 		SessionManager.api.getCoverArtUrl(
 			playerState.currentTrack?.coverArt,
@@ -347,7 +350,12 @@ private fun MediaBarScope.AlbumArt(
 	}
 
 	AsyncImage(
-		modifier = modifier,
+		modifier = modifier
+			.clickable {
+				coverUri?.let { uri ->
+					uriHandler.openUri(uri.toString())
+				}
+			},
 		model = coverUri,
 		contentDescription = playerState.currentTrack?.title,
 		contentScale = ContentScale.Crop,
