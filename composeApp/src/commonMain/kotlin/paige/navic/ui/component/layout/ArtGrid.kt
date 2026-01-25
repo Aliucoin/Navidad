@@ -68,7 +68,7 @@ fun ArtGridItem(
 	imageModifier: Modifier = Modifier,
 	imageUrl: String?,
 	title: String,
-	subtitle: String
+	subtitle: String? = null
 ) {
 	val imageBuilder = LocalImageBuilder.current
 	val artGridRounding = Settings.shared.artGridRounding
@@ -100,13 +100,15 @@ fun ArtGridItem(
 				.fillMaxWidth()
 				.padding(top = 6.dp)
 		)
-		Text(
-			text = subtitle,
-			style = MaterialTheme.typography.bodySmall,
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-			modifier = Modifier.fillMaxWidth(),
-			maxLines = 2
-		)
+		subtitle?.let {
+			Text(
+				text = subtitle,
+				style = MaterialTheme.typography.bodySmall,
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+				modifier = Modifier.fillMaxWidth(),
+				maxLines = 2
+			)
+		}
 	}
 }
 

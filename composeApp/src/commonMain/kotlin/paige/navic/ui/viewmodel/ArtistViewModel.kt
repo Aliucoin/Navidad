@@ -8,15 +8,20 @@ import kotlinx.coroutines.launch
 import paige.navic.data.session.SessionManager
 import paige.navic.util.UiState
 import paige.subsonic.api.model.Artist
+import paige.subsonic.api.model.ArtistInfo
 import paige.subsonic.api.model.Song
+
+data class ArtistState(
+	val artist: Artist,
+	val topSongs: List<Song>,
+	val info: ArtistInfo
+)
 
 class ArtistViewModel(
 	private val artistId: String
 ) : ViewModel() {
-	private val _artistState = MutableStateFlow<UiState<Artist>>(UiState.Loading)
+	private val _artistState = MutableStateFlow<UiState<ArtistState>>(UiState.Loading)
 	val artistState = _artistState.asStateFlow()
-	private val _topSongs = MutableStateFlow<List<Song>>(emptyList())
-	val topSongs = _topSongs.asStateFlow()
 
 	init {
 		viewModelScope.launch {
@@ -42,9 +47,13 @@ class ArtistViewModel(
 							)
 						}
 					)
-				}
-				_topSongs.value = topSongs.song.orEmpty()
-				_artistState.value = UiState.Success(artist)
+				}.song.orEmpty()
+				val artistInfo = SessionManager.api.getArtistInfo(artist.id).data.artistInfo
+				_artistState.value = UiState.Success(ArtistState(
+					artist,
+					topSongs,
+					artistInfo
+				))
 			} catch (e: Exception) {
 				_artistState.value = UiState.Error(e)
 			}

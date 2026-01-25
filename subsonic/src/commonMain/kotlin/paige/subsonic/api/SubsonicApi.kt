@@ -16,6 +16,7 @@ import paige.subsonic.api.model.AlbumInfoResponse
 import paige.subsonic.api.model.AlbumList2Response
 import paige.subsonic.api.model.AlbumListResponse
 import paige.subsonic.api.model.AlbumResponse
+import paige.subsonic.api.model.ArtistInfoResponse
 import paige.subsonic.api.model.ArtistResponse
 import paige.subsonic.api.model.ArtistsResponse
 import paige.subsonic.api.model.CreateShareResponse
@@ -134,6 +135,14 @@ class SubsonicApi(
 		return client
 			.get("rest/getArtists")
 			.body<SubsonicResponse<ArtistsResponse>>()
+	}
+
+	suspend fun getArtistInfo(id: String): SubsonicResponse<ArtistInfoResponse> {
+		return client
+			.get("rest/getArtistInfo") {
+				parameter("id", id)
+			}
+			.body<SubsonicResponse<ArtistInfoResponse>>()
 	}
 
 	suspend fun getAlbumList(

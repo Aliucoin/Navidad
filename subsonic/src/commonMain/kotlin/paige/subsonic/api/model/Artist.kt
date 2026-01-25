@@ -8,6 +8,11 @@ data class ArtistsResponse(
 )
 
 @Serializable
+data class ArtistInfoResponse(
+	val artistInfo: ArtistInfo
+)
+
+@Serializable
 data class Artists(
 	val ignoredArticles: String,
 	val index: List<Index>,
@@ -34,4 +39,15 @@ data class Artist(
 	val artistImageUrl: String?,
 	val album: List<Album>?,
 	val userRating: Int?
+)
+
+@Serializable
+data class ArtistInfo(
+	val biography: String?,
+	val musicBrainzId: String?,
+	val lastFmUrl: String?,
+	val smallImageUrl: String?,
+	val mediumImageUrl: String?,
+	val largeImageUrl: String?,
+	val similarArtist: List<Artist>?
 )
