@@ -5,6 +5,7 @@ import android.app.PendingIntent
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import androidx.annotation.OptIn
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.net.toUri
@@ -13,6 +14,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaController
 import androidx.media3.session.MediaSession
@@ -34,17 +37,30 @@ import paige.subsonic.api.model.TrackCollection
 class PlaybackService : MediaSessionService() {
 	private var mediaSession: MediaSession? = null
 
+	@OptIn(UnstableApi::class)
 	override fun onCreate() {
 		super.onCreate()
-		val player = ExoPlayer.Builder(this).build().apply {
-			setAudioAttributes(
-				androidx.media3.common.AudioAttributes.Builder()
-					.setUsage(androidx.media3.common.C.USAGE_MEDIA)
-					.setContentType(androidx.media3.common.C.AUDIO_CONTENT_TYPE_MUSIC)
-					.build(),
-				true
+		val loadControl = DefaultLoadControl.Builder()
+			.setBufferDurationsMs(
+				/* minBufferMs = */ 32_000,
+				/* maxBufferMs = */ 64_000,
+				/* bufferForPlaybackMs = */ 2_500,
+				/* bufferForPlaybackAfterRebufferMs = */ 5_000
 			)
-		}
+			.setBackBuffer(10_000, true)
+			.build()
+		val player = ExoPlayer.Builder(this)
+			.setLoadControl(loadControl)
+			.build()
+			.apply {
+				setAudioAttributes(
+					androidx.media3.common.AudioAttributes.Builder()
+						.setUsage(androidx.media3.common.C.USAGE_MEDIA)
+						.setContentType(androidx.media3.common.C.AUDIO_CONTENT_TYPE_MUSIC)
+						.build(),
+					true
+				)
+			}
 		val sessionIntent = Intent(this, MainActivity::class.java).apply {
 			flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or
 				Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -66,7 +82,6 @@ class PlaybackService : MediaSessionService() {
 		return mediaSession
 	}
 
-	// todo: actually handle restoring state
 	override fun onTaskRemoved(rootIntent: Intent?) {
 		onDestroy()
 		stopSelf()
@@ -176,32 +191,26 @@ class AndroidMediaPlayerViewModel(
 
 		viewModelScope.launch(Dispatchers.IO) {
 			val mediaItems = tracks.tracks.map { track ->
-				val url = try {
-					SessionManager.api.streamUrl(track.id)
-				} catch (_: Exception) {
-					""
-				}
-
 				val metadata = MediaMetadata.Builder()
 					.setTitle(track.title)
 					.setArtist(track.artist)
 					.setAlbumTitle(track.album)
-					.setArtworkUri(SessionManager.api.getCoverArtUrl(
-						track.coverArt, auth = true
-					)?.toUri())
+					.setArtworkUri(SessionManager.api.getCoverArtUrl(track.coverArt, auth = true)?.toUri())
 					.build()
 
 				MediaItem.Builder()
-					.setUri(url)
+					.setUri(SessionManager.api.streamUrl(track.id))
 					.setMediaId(track.id)
 					.setMediaMetadata(metadata)
 					.build()
 			}
 
 			withContext(Dispatchers.Main) {
-				controller?.setMediaItems(mediaItems, startIndex, 0L)
-				controller?.prepare()
-				controller?.play()
+				controller?.let { player ->
+					player.setMediaItems(mediaItems, startIndex, 0L)
+					player.prepare()
+					player.play()
+				}
 			}
 		}
 	}
