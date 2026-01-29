@@ -64,8 +64,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -126,7 +124,7 @@ private class MediaBarScope(
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun MediaBar() {
+fun MediaBar(progress: Float) {
 	val ctx = LocalCtx.current
 	val player = LocalMediaPlayer.current
 	val playerState by player.uiState.collectAsStateWithLifecycle()
@@ -135,15 +133,6 @@ fun MediaBar() {
 			playerState.currentTrack?.coverArt,
 			auth = true
 		)
-	}
-
-	var mediaBarTop by remember { mutableFloatStateOf(0f) }
-	var initialTop by remember { mutableFloatStateOf(0f) }
-
-	val progress by remember(mediaBarTop, initialTop) {
-		derivedStateOf {
-			if (initialTop == 0f) 0f else ((initialTop - mediaBarTop) / initialTop).coerceIn(0f, 1f)
-		}
 	}
 
 	val isFullyExpanded by remember(progress) {
@@ -157,11 +146,6 @@ fun MediaBar() {
 	BoxWithConstraints(
 		Modifier
 			.fillMaxHeight()
-			.onGloballyPositioned { coordinates ->
-				val topPx = coordinates.positionInWindow().y
-				mediaBarTop = topPx
-				if (initialTop == 0f && topPx > 0) initialTop = topPx
-			}
 	) {
 		val maxWidth = maxWidth
 		val artStartSize = MediaBarDefaults.collapsedArtSize
