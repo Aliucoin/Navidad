@@ -5,12 +5,10 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.expressiveLightColorScheme
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
-import androidx.compose.material3.windowsizeclass.WindowSizeClass
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.DpSize
-import androidx.compose.ui.unit.dp
 
 @OptIn(
 	ExperimentalMaterial3WindowSizeClassApi::class,
@@ -19,19 +17,17 @@ import androidx.compose.ui.unit.dp
 @Composable
 actual fun rememberCtx(): Ctx {
 	val darkTheme = isSystemInDarkTheme()
-	val sizeClass = WindowSizeClass.calculateFromSize(DpSize(1920.dp, 1080.dp))
-	return remember {
+	val sizeClass = calculateWindowSizeClass()
+	return remember(darkTheme, sizeClass) {
 		object : Ctx {
 			override fun clickSound() {
 				// none for jvm
 			}
-
-			override val name = "jvm"
-			override val appVersion: String = "todo"
-			override val colorScheme
-				get() = if (darkTheme)
-					darkColorScheme()
-				else expressiveLightColorScheme()
+			override val name = "Desktop (Java ${System.getProperty("java.version")})"
+			override val appVersion: String = System.getProperty("jpackage.app-version") ?: "unknown version"
+			override val colorScheme = if (darkTheme)
+				darkColorScheme()
+			else expressiveLightColorScheme()
 			override val sizeClass = sizeClass
 		}
 	}

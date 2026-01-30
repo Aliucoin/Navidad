@@ -7,8 +7,6 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
@@ -89,10 +87,7 @@ val LocalSnackbarState = staticCompositionLocalOf<SnackbarHostState> { error("no
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
-fun App(
-	modifier: Modifier = Modifier,
-	decorations: @Composable ColumnScope.() -> Unit = {}
-) {
+fun App() {
 	val platformContext = LocalPlatformContext.current
 	val ctx = rememberCtx()
 	val mediaPlayer = rememberMediaPlayer()
@@ -108,32 +103,29 @@ fun App(
 		LocalSnackbarState provides snackbarState
 	) {
 		NavicTheme {
-			Column(modifier) {
-				decorations()
-				MainScaffold(
-					snackbarState = snackbarState,
-					bottomBar = { BottomBar() }
-				) {
-					NavDisplay(
-						modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface),
-						backStack = backStack,
-						sceneStrategy = rememberListDetailSceneStrategy(),
-						onBack = { backStack.removeLastOrNull() },
-						entryProvider = entryProvider(backStack),
-						transitionSpec = {
-							slideInHorizontally(initialOffsetX = { it }) togetherWith
-								slideOutHorizontally(targetOffsetX = { -it })
-						},
-						popTransitionSpec = {
-							slideInHorizontally(initialOffsetX = { -it }) togetherWith
-								slideOutHorizontally(targetOffsetX = { it })
-						},
-						predictivePopTransitionSpec = {
-							slideInHorizontally(initialOffsetX = { -it }) togetherWith
-								slideOutHorizontally(targetOffsetX = { it })
-						}
-					)
-				}
+			MainScaffold(
+				snackbarState = snackbarState,
+				bottomBar = { BottomBar() }
+			) {
+				NavDisplay(
+					modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface),
+					backStack = backStack,
+					sceneStrategy = rememberListDetailSceneStrategy(),
+					onBack = { backStack.removeLastOrNull() },
+					entryProvider = entryProvider(backStack),
+					transitionSpec = {
+						slideInHorizontally(initialOffsetX = { it }) togetherWith
+							slideOutHorizontally(targetOffsetX = { -it })
+					},
+					popTransitionSpec = {
+						slideInHorizontally(initialOffsetX = { -it }) togetherWith
+							slideOutHorizontally(targetOffsetX = { it })
+					},
+					predictivePopTransitionSpec = {
+						slideInHorizontally(initialOffsetX = { -it }) togetherWith
+							slideOutHorizontally(targetOffsetX = { it })
+					}
+				)
 			}
 		}
 	}

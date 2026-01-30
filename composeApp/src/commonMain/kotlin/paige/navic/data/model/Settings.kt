@@ -178,6 +178,11 @@ class Settings(
 	var lyricsBeatByBeat by preference(true)
 	var scrobblePercentage by preference(.7f)
 	var minDurationToScrobble by preference(60f)
+	var windowPlacement by preference(0)
+	var windowPositionX by preference(100f)
+	var windowPositionY by preference(100f)
+	var windowSizeX by preference(800f)
+	var windowSizeY by preference(600f)
 	companion object {
 		val shared = paige.navic.data.model.Settings(
 			com.russhwolf.settings.Settings()
